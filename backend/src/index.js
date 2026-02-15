@@ -18,7 +18,7 @@ export const redisClient = createClient({
   url: redisUrl
 });
 
-redisClient.connect()
+await redisClient.connect()
   .then(() => console.log('Connected to Redis'))
   .catch((err) => {
     console.error('Failed to connect to Redis:', err);
@@ -32,7 +32,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 import userRoutes from './routes/user.js';
-import { ur } from 'zod/v4/locales';
 
 app.use('/api/v1', userRoutes);
 

@@ -1,3 +1,4 @@
+import { log } from "console";
 import {createTransport} from "nodemailer";
 
 const sendMail = async ({email, subject, html}) => {
@@ -16,6 +17,8 @@ const sendMail = async ({email, subject, html}) => {
     subject,
     html
   })
+  console.log(`Email sent to ${email} with subject "${subject}"`);
+
 }
 
 export default sendMail;
