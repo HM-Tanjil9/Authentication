@@ -1,4 +1,4 @@
-import { registerUserSchema } from "../config/zod.js";
+import { loginUserSchema, registerUserSchema } from "../config/zod.js";
 import { redisClient } from "../index.js";
 import TryCatch from "../middlewares/TryCatch.js";
 import sanitize from "mongo-sanitize";
@@ -6,9 +6,10 @@ import User  from "../models/User.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import sendMail from "../config/sendMail.js";
-import { getVerifyEmailHtml } from "../config/emailTemplates.js";
+import { getOtpHtml, getVerifyEmailHtml } from "../config/emailTemplates.js";
+import { generateToken } from "../config/generateToken.js";
 
-const registerUser = TryCatch(async (req, res) => {
+export const registerUser = TryCatch(async (req, res) => {
   const sanitizedBody = sanitize(req.body);
   const validation = registerUserSchema.safeParse(sanitizedBody);
 
@@ -124,11 +125,117 @@ export const verifyEmail = TryCatch(async (req, res) => {
       email: newUser.email
     }
   });
-
-
 });
 
 
-export {
-  registerUser
-}
+export const loginUser = TryCatch(async (req, res) => {
+  const sanitizedBody = sanitize(req.body);
+  const validation = loginUserSchema.safeParse(sanitizedBody);
+
+  if (!validation.success) {
+    const zodError = validation.error;
+    let firstErrorMessage = "Validation failed";
+    let allErrorMessages = [];
+    if(zodError?.issues && Array.isArray(zodError.issues)) {
+      allErrorMessages = zodError.issues.map(issue => ({
+        field: issue.path?.join(".") || "unknown",
+        message: issue.message || "Validation error",
+        code: issue.code || "zod_validation_error"
+      }));
+      firstErrorMessage = allErrorMessages[0]?.message || "Validation error";
+    }
+    return res.status(400).json({
+      success: false,
+      message: firstErrorMessage,
+      errors: allErrorMessages
+    });
+  }
+
+  const { email, password } = validation.data;
+
+  const rateLimitKey = `login-rate-limit:${req.ip}:${email}`;
+  if(await redisClient.get(rateLimitKey)) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many login attempts. Please try again later."
+    });
+  }
+
+  const user = await User.findOne({ email });
+  if(!user) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password"
+    });
+  }
+
+  const comparePassword = await bcrypt.compare(password, user.password);
+  if(!comparePassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password"
+    });
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  const otpKey = `otp:${email}`;
+  await redisClient.set(otpKey, JSON.stringify(otp), { EX: 300 }); // Expire in 5 minutes
+
+  const subject = "Your OTP for verification";
+  const html = getOtpHtml({email, otp});
+  await sendMail({
+    email,
+    subject,
+    html
+  });
+  
+  await redisClient.set(rateLimitKey, "true", { EX: 60 }); // Rate limit for 1 minute
+
+  res.json({
+    success: true,
+    message: "An OTP has been sent to your email address. Please verify to complete login. It will expire in 5 minutes.",
+  })
+
+});
+
+export const verifyOtp = TryCatch(async (req, res) => {
+  const { email, otp } = req.body;
+  
+  if(!email || !otp) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and OTP are required"
+    });
+  }
+
+  const otpKey = `otp:${email}`;
+  const storedOtpString = await redisClient.get(otpKey);
+  if(!storedOtpString) {
+    return res.status(400).json({
+      success: false,
+      message: "OTP has been expired"
+    });
+  }
+  
+  const storedOtp = JSON.parse(storedOtpString);
+
+  if(storedOtp !== otp) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid OTP"
+    });
+  }
+
+  await redisClient.del(otpKey);
+
+  let user = await User.findOne({ email });
+
+  const tokenData = await generateToken(user._id, res);
+
+  res.status(200).json({
+    success: true,
+    message: `Welcome back, ${user.name}! You have been logged in successfully.`,
+    user
+  });
+});
