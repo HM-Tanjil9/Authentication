@@ -1,5 +1,6 @@
 import express from 'express';
-import { loginUser, registerUser, verifyEmail, verifyOtp } from '../controllers/user.js';
+import { loginUser, logoutUser, myProfile, refreshToken, registerUser, verifyEmail, verifyOtp } from '../controllers/user.js';
+import { isAuth } from '../middlewares/isAuth.js';
 
 const router = express.Router();
 
@@ -15,5 +16,11 @@ router.post('/verify/:token', verifyEmail);
 // @access  Public
 router.post('/login', loginUser);
 router.post('/verify', verifyOtp); 
+
+router.get('/me', isAuth, myProfile);
+
+router.post('/refresh', refreshToken);
+
+router.post('/logout', isAuth, logoutUser);
 
 export default router;

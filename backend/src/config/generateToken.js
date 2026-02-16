@@ -11,7 +11,7 @@ export const generateToken = async (id, res) => {
     });
 
     const refreshTokenKey = `refresh_token:${id}`;
-    await redisClient.set(refreshTokenKey, 7*24*60*60, refreshToken); // Store refresh token with expiration of 7 days
+    await redisClient.setEx(refreshTokenKey, 7*24*60*60, refreshToken); // Store refresh token with expiration of 7 days
 
     res.cookie('accessToken', accessToken, {
         httpOnly: true,
@@ -28,4 +28,39 @@ export const generateToken = async (id, res) => {
     });
 
     return { accessToken, refreshToken };
+}
+
+export const verifyRefreshToken = async (refreshToken) => {
+    try {
+        const decodedData = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        
+        const storedToken = await redisClient.get(`refresh_token:${decodedData.id}`);
+        
+        if (storedToken === refreshToken) {
+            return decodedData;
+        }
+        return null;
+    } catch (error) {
+        console.log(error);
+        
+        return null;
+    }
+}
+
+export const generateAccessToken = (id, res) => {
+    const accessToken = jwt.sign({ id }, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: '1m'
+    });
+
+    res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        // secure: true,
+        sameSite: 'strict',
+        maxAge: 1 * 60 * 1000 // 1 minute
+    });
+}
+
+export const revokeRefreshToken = async (id) => {
+  const refreshTokenKey = `refresh_token:${id}`;
+  await redisClient.del(refreshTokenKey);
 }
