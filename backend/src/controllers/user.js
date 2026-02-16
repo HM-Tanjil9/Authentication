@@ -255,7 +255,6 @@ export const refreshToken = TryCatch(async (req, res) => {
   }
 
   const decodedData = await verifyRefreshToken(refreshToken);
-  console.log("Decoded data:", decodedData);
   
   if (!decodedData) {
     return res.status(401).json({ message: 'Invalid refresh token' });
