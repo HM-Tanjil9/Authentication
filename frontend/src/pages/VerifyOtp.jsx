@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { server } from '../main.jsx';
 import { toast } from 'react-toastify';
+import { AppData } from '../context/AppContext.jsx';
 
 function VerifyOtp() {
   const [otp, setOtp] = useState(new Array(6).fill(''));
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
+  const { setIsAuth, setUser } = AppData();
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -66,7 +68,9 @@ function VerifyOtp() {
       },{ withCredentials: true });
       toast.success(data.message);
       localStorage.clear('email');
-      navigate('/dashboard');
+      setIsAuth(true);
+      setUser(data.user);
+      navigate('/');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Verification failed');
     } finally {
@@ -81,7 +85,7 @@ function VerifyOtp() {
         <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-8 md:p-10">
           {/* Icon */}
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
