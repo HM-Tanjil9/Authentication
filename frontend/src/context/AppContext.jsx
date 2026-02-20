@@ -26,12 +26,13 @@ export const AppProvider = ({ children }) => {
         }
     }
 
-    async function logout() {
+    async function logoutUser(navigate) {
         try {
             await api.post(`/api/v1/logout`);
             toast.success("Logged out successfully");
             setUser(null);
             setIsAuth(false);
+            navigate("/login");
         } catch (error) {
             toast.error(error.response?.data?.message || "Logout failed");
         }
@@ -42,7 +43,7 @@ export const AppProvider = ({ children }) => {
     }, []);
 
     return (
-        <AppContext.Provider  value={{ user, loading, isAuth, setIsAuth, setUser, logout }}>
+        <AppContext.Provider  value={{ user, loading, isAuth, setIsAuth, setUser, logoutUser }}>
             {children}
         </AppContext.Provider>
     )
