@@ -289,3 +289,10 @@ export const refreshCSRF = TryCatch(async (req, res) => {
     csrfToken: newCsrfToken
   });
 });
+
+export const adminController = TryCatch(async (req, res) => {
+  res.json({
+    success: true,
+    message: "Welcome to the admin route, you have admin access"
+  });
+})

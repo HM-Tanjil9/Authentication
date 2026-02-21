@@ -34,3 +34,11 @@ export const isAuth = async (req, res, next) => {
         return res.status(500).json({ message: error });  
     }
 }
+
+export const authorizedAdmin = async (req, res, next) => {
+    const user = req.user;
+    if(user.role !== 'admin') {
+        return res.status(403).json({ message: 'Unauthorized: Only admin can access this route' });
+    }
+    next();
+}

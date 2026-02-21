@@ -23,7 +23,7 @@ function App() {
             <Route path='/register' element={<Register />} />
             <Route path='/verify-otp' element={isAuth ? <Home /> : <VerifyOtp />} />
             <Route path='/verify/:token' element={isAuth ? <Home /> : <Verify />} />
-            <Route path='/dashboard' element={<Dashboard />} />
+            <Route path='/dashboard' element={isAuth ? <Dashboard /> : <Login />} />
           </Routes>
           <ToastContainer />
         </BrowserRouter>)
