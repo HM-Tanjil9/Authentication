@@ -40,9 +40,13 @@ A production-ready authentication system built with the MERN stack (MongoDB, Exp
 
 ## 🎥 Demo Video
 
-[![Watch the demo](https://i.ytimg.com/vi/iYR-m-pgDrk/hqdefault.jpg?sqp=-oaymwEnCNACELwBSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLAN5cgxn6ptdQ1Y2eTfTDZuJvf6Gg)](https://youtu.be/1onPsfCNTB4 "target=_blank")
-
-
+<span >
+  <a href="https://www.youtube.com/watch?v=1onPsfCNTB4" target="_blank">
+    <img src="https://res.cloudinary.com/dhteatu2o/image/upload/v1756528780/Gemini_Generated_Image_uxek6suxek6suxek_q96flm.png" alt="Watch Demo Video" width="600px">
+  </a>
+  <br>
+  <b>📺 <a href="https://www.youtube.com/watch?v=1onPsfCNTB4" target="_blank">Click to watch the demo on YouTube</a></b>
+</span>
 
 
 
