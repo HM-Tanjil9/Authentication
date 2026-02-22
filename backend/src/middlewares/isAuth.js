@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { redisClient } from '../index.js';
 import User from '../models/User.js';
+import { isSessionActive } from '../config/generateToken.js';
 
 
 export const isAuth = async (req, res, next) => {
@@ -13,10 +14,19 @@ export const isAuth = async (req, res, next) => {
         if(!decodedData) {
             return res.status(400).json({ message: 'Invalid token' });
         }
-        
+
+        const sessionActive = await isSessionActive(decodedData.id, decodedData.sessionId);
+        if (!sessionActive) {
+            res.clearCookie('accessToken');
+            res.clearCookie('refreshToken');
+            res.clearCookie('csrfToken');
+            return res.status(401).json({ message: 'Session expired. You have been logged out from other device' });
+        }
+
         const cacheUser = await redisClient.get(`user:${decodedData.id}`);
         if(cacheUser) {
             req.user = JSON.parse(cacheUser);
+            req.sessionId = decodedData.sessionId;
             return next();
         }
 
@@ -28,6 +38,7 @@ export const isAuth = async (req, res, next) => {
         await redisClient.setEx(`user:${user._id}`, 3600, JSON.stringify(user)); // Cache user data for 1 hour
         
         req.user = user;
+        req.sessionId = decodedData.sessionId;
         next();
 
     } catch (error) {

@@ -9,6 +9,7 @@ import sendMail from "../config/sendMail.js";
 import { getOtpHtml, getVerifyEmailHtml } from "../config/emailTemplates.js";
 import { generateAccessToken, generateToken, revokeRefreshToken, verifyRefreshToken } from "../config/generateToken.js";
 import { generateCSRFToken, refreshCSRFToken } from "../config/csrfMiddlewares.js";
+import { create } from "domain";
 
 export const registerUser = TryCatch(async (req, res) => {
   const sanitizedBody = sanitize(req.body);
@@ -237,15 +238,33 @@ export const verifyOtp = TryCatch(async (req, res) => {
   res.status(200).json({
     success: true,
     message: `Welcome back, ${user.name}! You have been logged in successfully.`,
-    user
+    user,
+    sessionInfo: {
+      sessionId: tokenData.sessionId,
+      createdAt: new Date().toISOString(),
+      csrfToken: tokenData.csrfToken
+    }
   });
 });
 
 export const myProfile = TryCatch(async (req, res) => {
   const user = req.user;
+  const sessionId = req.sessionId;
+  const sessionData = await redisClient.get(`session:${sessionId}`);
+  let sessionInfo = null;
+  if(sessionData) {
+    const parsedSessionData = JSON.parse(sessionData);
+    sessionInfo = {
+      sessionId,
+      loginTime: parsedSessionData.createdAt,
+      lastActivity: parsedSessionData.lastActivity
+    }
+  } 
+
   res.json({
     success: true,
-    user
+    user,
+    sessionInfo
   });
 });
 
@@ -258,10 +277,13 @@ export const refreshToken = TryCatch(async (req, res) => {
   const decodedData = await verifyRefreshToken(refreshToken);
   
   if (!decodedData) {
-    return res.status(401).json({ message: 'Invalid refresh token' });
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+    res.clearCookie('csrfToken');
+    return res.status(401).json({ message: 'Session expired. Please login again.' });
   }
 
-  generateAccessToken(decodedData.id, res);
+  generateAccessToken(decodedData.id, decodedData.sessionId, res);
 
   res.status(200).json({ message: 'Access token refreshed successfully' });
 
